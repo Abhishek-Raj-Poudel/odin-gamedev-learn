@@ -1,4 +1,4 @@
-package texture
+package graphics
 
 import "core:strings"
 import rl "vendor:raylib"
