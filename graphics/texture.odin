@@ -19,3 +19,7 @@ load_texture :: proc(path: string) -> rl.Texture {
 
 	return t
 }
+
+draw_sprite :: proc(tex: rl.Texture2D, pos: [2]f32) {
+	rl.DrawTextureV(tex, pos, rl.WHITE)
+}

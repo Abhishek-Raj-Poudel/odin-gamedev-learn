@@ -1,16 +1,9 @@
 package main
 
-import "core:math"
-// import "core:fmt"
-import la "core:math/linalg"
 import rl "vendor:raylib"
 
-// import "core"
 import "core"
 import "game"
-import "graphics"
-
-// PLAYER_SPEED :: 400
 
 
 main :: proc() {
@@ -19,10 +12,9 @@ main :: proc() {
 	screen_h: i32 = 1000
 
 	rl.InitWindow(screen_w, screen_h, "My Odin + Raylib game")
-	//create
-	// player := graphics.load_texture("player.png")
 
-	player := game.create()
+	player := game.create_player()
+	enemy := game.create_enemy()
 
 	//update
 	player_pos: [2]f32
@@ -31,11 +23,13 @@ main :: proc() {
 
 		input := core.Get_Input()
 
-		game.update(&player, input)
+		game.update_player(&player, input)
+		game.update_enemy(&enemy)
 
 		rl.BeginDrawing()
 		rl.ClearBackground({160, 200, 255, 255})
-		game.draw(player)
+		game.draw_player(player)
+		game.draw_enemy(enemy)
 
 		rl.EndDrawing()
 		free_all(context.temp_allocator)
