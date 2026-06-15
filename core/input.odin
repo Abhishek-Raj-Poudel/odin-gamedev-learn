@@ -29,6 +29,10 @@ Get_Input :: proc() -> Input_State {
 		state.x += 1
 	}
 
+	if rl.IsKeyDown(.SPACE) {
+		state.shoot = true
+	}
+
 	return state
 
 }
