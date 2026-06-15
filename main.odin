@@ -16,20 +16,25 @@ main :: proc() {
 	player := game.create_player()
 	enemy := game.create_enemy()
 
-	//update
-	player_pos: [2]f32
 
+	bullets := make([dynamic]game.Bullet)
+
+	// so this is my update function
 	for !rl.WindowShouldClose() {
 
 		input := core.Get_Input()
 
-		game.update_player(&player, input)
+		game.update_player(&player, input, &bullets)
 		game.update_enemy(&enemy)
+		//move all bullets
+		game.update_bullet(bullets)
+
 
 		rl.BeginDrawing()
 		rl.ClearBackground({160, 200, 255, 255})
 		game.draw_player(player)
 		game.draw_enemy(enemy)
+		game.draw_bullet(bullets)
 
 		rl.EndDrawing()
 		free_all(context.temp_allocator)

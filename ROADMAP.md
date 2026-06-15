@@ -5,11 +5,12 @@
 - Player moves with arrow keys, clamped to screen
 - Enemy moves straight down
 - Texture cache exists
-- No bullets, no collision, no wave system yet
+- Bullet system working: SPACE fires upward, fire rate timer on Player struct
+- No collision, no wave system yet
 
 ---
 
-## Step 1 — Bullet System
+## ~~Step 1 — Bullet System~~ [DONE]
 
 **Files:** `game/bullet.odin`
 
@@ -28,6 +29,8 @@ Bullet :: struct {
 - `update_bullets( bullets: ^[dynamic]Bullet )` move + deactivate off-screen
 - `draw_bullets( bullets: ^[dynamic]Bullet )` draw each active bullet
 - Bind shoot to SPACE key in `Input_State.shoot`
+
+Status: SPACE fires bullets upward with fire rate timer on Player. Pool via `[dynamic]Bullet` in main. Bullet direction `{0, -1}`, speed `BULLET_SPEED`. Missing: off-screen removal.
 
 Check: run game, press SPACE, see rectangle fly upward.
 
