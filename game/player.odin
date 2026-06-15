@@ -12,9 +12,11 @@ PLAYER_SPEED :: 400
 PLAYER_TEXTURE :: "assets/texture/player.png"
 
 Player :: struct {
-	position: [2]f32,
-	texture:  rl.Texture2D,
-	speed:    f32,
+	position:   [2]f32,
+	texture:    rl.Texture2D,
+	speed:      f32,
+	fire_rate:  f32,
+	fire_timer: f32,
 }
 
 
@@ -23,10 +25,20 @@ create_player :: proc() -> Player {
 		texture = graphics.load_texture(PLAYER_TEXTURE),
 		position = [2]f32{f32(rl.GetScreenWidth()) / 2, f32(rl.GetScreenHeight() / 2)},
 		speed = PLAYER_SPEED,
+		fire_rate = .25,
 	}
 }
 
-update_player :: proc(p: ^Player, input: core.Input_State) {
+
+// Player should be able to move and shoot
+update_player :: proc(p: ^Player, input: core.Input_State, bullets: ^[dynamic]Bullet) {
+
+	p.fire_timer -= rl.GetFrameTime()
+
+	if input.shoot && p.fire_timer <= 0 {
+		append(bullets, spawn_bullet(p.position))
+		p.fire_timer = p.fire_rate
+	}
 
 	direction := [2]f32{input.x, input.y}
 
@@ -43,6 +55,8 @@ update_player :: proc(p: ^Player, input: core.Input_State) {
 
 	p.position.x = math.clamp(p.position.x, min_x, max_x)
 	p.position.y = math.clamp(p.position.y, min_y, max_y)
+
+
 }
 
 draw_player :: proc(p: Player) {
