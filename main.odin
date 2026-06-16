@@ -2,41 +2,25 @@ package main
 
 import rl "vendor:raylib"
 
-import "core"
 import "game"
+
+WINDOW_WIDTH :: 600
+WINDOW_HEIGHT :: 1000
 
 
 main :: proc() {
 
-	screen_w: i32 = 600
-	screen_h: i32 = 1000
+	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Odin + Raylib game")
 
-	rl.InitWindow(screen_w, screen_h, "My Odin + Raylib game")
-
-	player := game.create_player()
-	enemy := game.create_enemy()
-
-
-	bullets := make([dynamic]game.Bullet)
+	state := game.init_game()
 
 	// so this is my update function
 	for !rl.WindowShouldClose() {
 
-		input := core.Get_Input()
+		game.update_game(&state)
 
-		game.update_player(&player, input, &bullets)
-		game.update_enemy(&enemy)
-		//move all bullets
-		game.update_bullet(bullets)
+		game.draw_game(&state)
 
-
-		rl.BeginDrawing()
-		rl.ClearBackground({160, 200, 255, 255})
-		game.draw_player(player)
-		game.draw_enemy(enemy)
-		game.draw_bullet(bullets)
-
-		rl.EndDrawing()
 		free_all(context.temp_allocator)
 	}
 
