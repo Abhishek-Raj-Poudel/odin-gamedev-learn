@@ -1,5 +1,6 @@
 package game
 
+import "core:fmt"
 import rl "vendor:raylib"
 
 import "../core"
@@ -20,8 +21,16 @@ update_game :: proc(s: ^GameState) {
 
 	update_player(&s.player, inputs, &s.bullets)
 
-	for &bullet in s.bullets {
-		update_bullet(&bullet)
+
+	for i := len(s.bullets) - 1; i >= 0; i -= 1 {
+
+		update_bullet(&s.bullets[i])
+
+		if !s.bullets[i].active {
+			unordered_remove(&s.bullets, i)
+		}
+
+		fmt.println("Total bullets:", len(&s.bullets))
 	}
 
 }

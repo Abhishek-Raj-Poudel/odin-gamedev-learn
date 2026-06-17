@@ -1,16 +1,18 @@
-# Off-Screen Entity Removal
+# Off-Screen Bullet Removal
 
 ## Problem
 
-Bullets (and later enemies) leave visible area. Their position still updates every frame. Pool grows forever. Memory leak + wasted CPU.
+Bullets fired never removed. Pool grows forever. Memory leak. Wasted CPU updating/drawing dead bullets.
 
-## Solution: `off_screen` check + `unordered_remove`
+## Solution
 
-Two parts: **detect** off-screen, **remove** from dynamic array.
+Two-part: mark inactive when off-screen, delete inactive bullets each frame.
 
 ---
 
-## Detect
+## Step 1: `off_screen` helper
+
+In `bullet.odin`:
 
 ```odin
 OFFSCREEN_MARGIN :: 100
@@ -25,25 +27,63 @@ off_screen :: proc(pos: [2]f32) -> bool {
 }
 ```
 
-Margin prevents pop-at-edge. Entity disappears fully before removal.
+MARGIN prevents pop-at-edge. Bullet fully leaves screen before removal.
 
-No raylib equivalent. `GetScreenWidth/Height` + manual check.
+No raylib equivalent. `GetScreenWidth/Height` + manual bounds check.
 
 ---
 
-## Remove
+## Step 2: Mark inactive on off-screen
+
+In `update_bullet` (`bullet.odin`):
+
+```odin
+update_bullet :: proc(b: ^Bullet) {
+    if !b.active {return}
+    b.pos += b.vel * rl.GetFrameTime()
+    if off_screen(b.pos) {
+        b.active = false
+    }
+}
+```
+
+---
+
+## Step 3: Guard draw by active
+
+In `draw_bullet` (`bullet.odin`):
+
+```odin
+draw_bullet :: proc(b: Bullet) {
+    if !b.active {return}
+    rl.DrawTextureV(b.texture, b.pos, rl.WHITE)
+}
+```
+
+---
+
+## Step 4: Delete inactive bullets each frame
+
+In `game.odin`, add import:
 
 ```odin
 import "core:slice"
+```
 
-update_bullet :: proc(b: ^[dynamic]Bullet) {
+Then in `update_game`:
+
+```odin
+update_game :: proc(s: ^GameState) {
+    inputs := core.Get_Input()
+    update_player(&s.player, inputs, &s.bullets)
+    for &bullet in s.bullets {
+        update_bullet(&bullet)
+    }
+    // remove inactive bullets
     i := 0
-    for i < len(b) {
-        move := la.normalize0(b[i].direction) * b[i].speed * rl.GetFrameTime()
-        b[i].position += move
-
-        if off_screen(b[i].position) {
-            slice.unordered_remove(b, i)
+    for i < len(s.bullets) {
+        if !s.bullets[i].active {
+            slice.unordered_remove(&s.bullets, i)
         } else {
             i += 1
         }
@@ -51,43 +91,23 @@ update_bullet :: proc(b: ^[dynamic]Bullet) {
 }
 ```
 
-| Detail | Reason |
-|--------|--------|
-| `^[dynamic]Bullet` pointer | Caller pool must see deletion |
-| `unordered_remove` | Swaps last element into hole. O(1). Order irrelevant for bullets |
-| Manual `i` (not `for _, v in`) | Index shifts on delete. Must `i += 1` only when no removal |
-| `la.normalize0` return zero on zero vector | Safe if direction is `{0, 0}` |
+---
+
+## Why This Works
+
+| Part | Why |
+|------|-----|
+| `off_screen` | Single bounds check. Reusable for enemies later |
+| `active = false` | Defers deletion. Avoids delete-while-iterating in bullet loop |
+| Separate cleanup loop | Delete after all updates. Safe iteration |
+| `unordered_remove` | O(1). Swaps last element into hole. Order irrelevant for bullets |
+| Manual `i` index | Deletion shifts last element into `i`. Don't skip it |
 
 ---
 
-## Why NOT `ordered_remove`
+## Verify
 
-```odin
-// Slower. Every delete shifts remaining elements.
-ordered_remove(&arr, i)  // O(n) per delete
-unordered_remove(&arr, i) // O(1) per delete
-```
-
-Bullets and particles: `unordered_remove`. Priority queues / z-ordered lists: `ordered_remove`.
-
----
-
-## Caller Also Changes
-
-`main.odin` pass pointer:
-
-```odin
-game.update_bullet(&bullets)  // was: update_bullet(bullets)
-```
-
----
-
-## Patterns for Other Entities
-
-| Entity | Pool type | Remove when |
-|--------|-----------|-------------|
-| Bullets | `[dynamic]Bullet` | off-screen OR hit enemy |
-| Enemies | `[dynamic]Enemy` | off-screen (bottom) OR health <= 0 |
-| Particles | `[dynamic]Particle` | lifetime <= 0 |
-
-All follow same pattern: `unordered_remove` + manual index.
+1. Run game
+2. Hold SPACE
+3. Bullets fire upward, disappear past screen top + 100px
+4. Bullet count stops growing
