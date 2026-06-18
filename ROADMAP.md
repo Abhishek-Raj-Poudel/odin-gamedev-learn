@@ -2,205 +2,157 @@
 
 ## Current State
 
-- Player moves with arrow keys, clamped to screen
-- Enemy moves straight down
-- Texture cache exists
-- Bullet system working: SPACE fires upward, fire rate timer on Player struct
-- No collision, no wave system yet
+- [x] Player moves arrow keys, clamped to screen
+- [x] Player shoots SPACE, fire rate 0.25s
+- [x] Bullet off-screen removal
+- [x] Enemy struct with `active`, `vel`, `fire_rate`
+- [x] Enemy pool: `[dynamic]Enemy` in GameState
+- [x] Enemy update/draw loops in game.odin
+- [x] Enemy off-screen removal
+- [x] Texture cache
+- No enemy shooting, no collision, no game states, no spawner
 
 ---
 
-## ~~Step 1 — Bullet System~~ [DONE]
+## ~~Phase 0 — Bullet System~~ [DONE]
 
-**Files:** `game/bullet.odin`
-
-Goal: Player presses SPACE → bullet spawns at player position → moves upward → remove when off-screen.
-
-```
-Bullet :: struct {
-    position: [2]f32
-    velocity: [2]f32
-    active:   bool
-}
-```
-
-- Use `[dynamic]Bullet` as pool in main.odin
-- `spawn_bullet( pos: [2]f32, dir: [2]f32 )` append to pool
-- `update_bullets( bullets: ^[dynamic]Bullet )` move + deactivate off-screen
-- `draw_bullets( bullets: ^[dynamic]Bullet )` draw each active bullet
-- Bind shoot to SPACE key in `Input_State.shoot`
-
-Status: SPACE fires bullets upward with fire rate timer on Player. Pool via `[dynamic]Bullet` in main. Bullet direction `{0, -1}`, speed `BULLET_SPEED`. Missing: off-screen removal.
-
-Check: run game, press SPACE, see rectangle fly upward.
+- `Bullet` struct with `pos`, `vel`, `active`
+- `make_bullet(pos, vel)` factory
+- Off-screen removal with `off_screen` check
+- `unordered_remove` in reverse loop
 
 ---
 
-## Step 2 — Input Improvements
+## ~~Phase 0.5 — Enemy Pool~~ [DONE]
 
-**Files:** `core/input.odin`
-
-- Add `shoot` bool
-- Add `start` (ENTER / SPACE for menus later)
-- Add mouse position if needed later
-- Clean unused fields (`move`)
+- Enemy struct: `pos`, `vel`, `active`, `fire_rate`, `texture`
+- `create_enemy(pos, vel, fire_rate)` factory
+- `[dynamic]Enemy` in GameState
+- Update/draw loops with reverse-iterate + unordered_remove
 
 ---
 
-## Step 3 — Enemy Faces Player
+## Phase 1 — Enemy Shoots at Player
 
-**Files:** `core/math.odin` (new), `game/enemy.odin`
+**Files:** `game/enemy.odin`, `game/game.odin`
 
-Goal: Enemy moves toward player position every frame.
+Goal: Enemy fires bullets toward player.
 
-```
-direction_to :: proc(from, to: [2]f32) -> [2]f32 {
-    return math.linalg.normalize0(to - from)
-}
-```
+- Pass `player_pos` + enemy bullet pool to `update_enemy`
+- Add `fire_timer` to Enemy, decrement each frame
+- On timer <= 0: calculate direction `normalize(player_pos - e.pos)` , spawn bullet, reset timer
+- Add `enemy_bullets: [dynamic]Bullet` to GameState
+- Update + draw enemy bullets in game.odin
 
-- `update_enemy(e: ^Enemy, player_pos: [2]f32)` — set direction toward player
-- Apply `direction * e.speed * dt`
-- Add clamp to screen bounds
-
-Check: enemy follows player around.
+Check: enemy fires bullets that track toward player position.
 
 ---
 
-## Step 4 — Collision Detection
+## Phase 2 — Collision Detection
 
 **Files:** `game/collision.odin` (new)
 
-Goal: Bullet hits enemy → both disappear.
-
-```
-check_collision_circle :: proc(pos1, pos2: [2]f32, r1, r2: f32) -> bool {
-    return math.linalg.distance(pos1, pos2) < r1 + r2
-}
-```
-
-- In main loop: for each active bullet, check vs each active enemy
-- On hit: bullet.active = false, enemy alive = false (or hp--)
-
-Check: shoot enemy, it disappears.
-
----
-
-## Step 5 — Enemy Variants
-
-**Files:** `game/enemy.odin`
-
-Goal: Different enemy types from same struct.
+Goal: Detect bullet-entity hits.
 
 ```odin
-EnemyType :: enum {
-    BASIC,
-    FAST,
-    TANK,
-}
-
-Enemy :: struct {
-    position: [2]f32
-    texture:  rl.Texture2D
-    type:     EnemyType
-    speed:    f32
-    hp:       f32
-}
+circle_vs_circle :: proc(pos1, pos2: [2]f32, r1, r2: f32) -> bool
 ```
 
-- `create_enemy(type: EnemyType, pos: [2]f32)` — switch on type to set speed/hp/texture
-- In `update_enemy`: switch on type for behavior (different movement patterns)
-
-Check: spawn 3 types, see different speeds and health.
+- Player bullets vs enemy
+- Enemy bullets vs player
 
 ---
 
-## Step 6 — Wave Spawner
+## Phase 3 — Player Bullet Kills Enemy + Score
 
-**Files:** `game/wave.odin` (new)
+**Files:** `game/game.odin`
 
-Goal: Waves of enemies spawn automatically.
+Goal: Shooting enemy destroys it, score increases.
+
+- On collision: `enemy.active = false`, `bullet.active = false`, `score += 1`
+- Add `score: int` to GameState
+
+---
+
+## Phase 4 — Enemy Bullet Kills Player + Restart
+
+**Files:** `game/game.odin`, `game/player.odin`
+
+Goal: Getting hit = death. R to restart.
+
+- Add `alive: bool` to Player
+- On collision: `player.alive = false`
+- R key resets GameState
+
+---
+
+## Phase 5 — Game State Machine
+
+**Files:** `game/state.odin` (new), `game/game.odin`, `main.odin`
+
+Goal: Menu → Playing → Game Over.
 
 ```odin
-Wave_Entry :: struct {
-    enemy_type: EnemyType
-    count:      int
-    delay:      f32    // seconds between spawns
-}
-
-Wave_Spawner :: struct {
-    entries:       []Wave_Entry
-    current_entry: int
-    spawned:       int
-    timer:         f32
-    active:        bool
-}
+Screen :: enum { MENU, PLAYING, GAME_OVER }
 ```
 
-- `init_wave(entries: []Wave_Entry)` — setup spawner
-- `update_wave(sw: ^Wave_Spawner) -> []Enemy` or callback — spawn enemies on timer
-- When all entries done, wave complete
-- After wave, brief pause, then next wave
-
-Check: run game, enemies spawn in waves with pauses between.
+- MENU: title, ENTER to start
+- PLAYING: game runs
+- GAME_OVER: final score, R to restart
 
 ---
 
-## Step 7 — Game State
+## Phase 6 — Enemy Spawner
 
-**Files:** `game/state.odin` (new) or in main
+**Files:** `game/wave.odin` (new), `game/game.odin`
 
-Goal: Manage screens (menu, playing, game over).
+Goal: Continuous enemy spawning.
 
 ```odin
-Game_State :: enum {
-    MENU,
-    PLAYING,
-    GAME_OVER,
+Spawner :: struct {
+    timer:          f32,
+    spawn_interval: f32,
 }
 ```
 
-- Main loop switches on state
-- MENU: show title, press ENTER to start
-- PLAYING: run game logic
-- GAME_OVER: show score, press ENTER to restart
+- `init_spawner(interval) -> Spawner`
+- `update_spawner(s: ^Spawner, enemies: ^[dynamic]Enemy)` — timer ticks, spawns enemy at random x above screen
+- Add `spawner: Spawner` to GameState
 
 ---
 
-## Step 8 — Polish
+## Phase 7 — Polish
 
-- Score display
-- Player death animation
+- Score display on screen
 - Sound effects (raylib audio)
+- Player death animation
 - Screen shake
-- Background
-- More enemy patterns (zigzag, orbit, charge)
+- Background / parallax
+- Enemy variants (fast, tank, zigzag)
 
 ---
 
-## File Reference
-
-### Full structure after all steps:
+## File Reference (planned)
 
 ```
 .
-├── main.odin                 -- entry, game loop, state machine
+├── main.odin                 -- entry, game loop
 ├── core/
 │   ├── input.odin            -- Input_State + Get_Input()
-│   └── math.odin             -- direction_to, distance, helpers
+│   └── math.odin             -- direction_to, distance helpers (new)
 ├── game/
+│   ├── game.odin             -- GameState, init/update/draw orchestration
 │   ├── player.odin           -- Player struct + create/update/draw
-│   ├── enemy.odin            -- Enemy struct + EnemyType + create/update/draw
-│   ├── bullet.odin           -- Bullet struct + pool + create/update/draw
-│   ├── collision.odin        -- collision check functions
-│   ├── wave.odin             -- Wave_Spawner + configs
-│   └── state.odin            -- Game_State enum
+│   ├── enemy.odin            -- Enemy struct + create/update/draw
+│   ├── bullet.odin           -- Bullet struct + make/update/draw + off-screen
+│   ├── collision.odin        -- collision checks (new)
+│   ├── wave.odin             -- spawner (new)
+│   └── state.odin            -- Screen enum (new)
 ├── graphics/
-│   ├── texture.odin          -- texture cache + draw_sprite
-│   └── camera.odin           -- screen effects (optional)
+│   └── texture.odin          -- texture cache
 └── assets/
     └── texture/
         ├── player.png
         ├── bullet.png
-        └── enemy_*.png        -- one per enemy type
+        └── enemy.png
 ```

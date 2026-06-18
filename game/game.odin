@@ -1,6 +1,5 @@
 package game
 
-import "core:fmt"
 import rl "vendor:raylib"
 
 import "../core"
@@ -9,7 +8,7 @@ import "../core"
 GameState :: struct {
 	player:  Player,
 	bullets: [dynamic]Bullet,
-	// enemies: [dynamic]Enemy,
+	enemies: [dynamic]Enemy,
 }
 
 init_game :: proc() -> GameState {
@@ -21,7 +20,6 @@ update_game :: proc(s: ^GameState) {
 
 	update_player(&s.player, inputs, &s.bullets)
 
-
 	for i := len(s.bullets) - 1; i >= 0; i -= 1 {
 
 		update_bullet(&s.bullets[i])
@@ -29,9 +27,17 @@ update_game :: proc(s: ^GameState) {
 		if !s.bullets[i].active {
 			unordered_remove(&s.bullets, i)
 		}
-
-		fmt.println("Total bullets:", len(&s.bullets))
 	}
+	//same logic for enemies i guess
+	for i := len(s.enemies) - 1; i >= 0; i -= 1 {
+
+		update_enemy(&s.enemies[i])
+
+		if !s.enemies[i].active {
+			unordered_remove(&s.enemies, i)
+		}
+	}
+
 
 }
 
@@ -43,6 +49,10 @@ draw_game :: proc(s: ^GameState) {
 
 	for bullet in s.bullets {
 		draw_bullet(bullet)
+	}
+
+	for enemy in s.enemies {
+		draw_enemy(enemy)
 	}
 
 	rl.EndDrawing()

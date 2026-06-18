@@ -6,7 +6,6 @@ import "../graphics"
 
 BULLET_SPEED :: 600
 
-OFFSCREEN_MARGIN :: 100
 BULLET_TEXTURE :: "assets/texture/bullet.png"
 
 Bullet :: struct {
@@ -35,19 +34,6 @@ update_bullet :: proc(b: ^Bullet) {
 
 }
 
-off_screen :: proc(pos: [2]f32) -> bool {
-
-	sw := f32(rl.GetScreenWidth())
-	sh := f32(rl.GetScreenHeight())
-
-	return(
-		pos.x < -OFFSCREEN_MARGIN ||
-		pos.x > sw + OFFSCREEN_MARGIN ||
-		pos.y < -OFFSCREEN_MARGIN ||
-		pos.y > sh + OFFSCREEN_MARGIN \
-	)
-
-}
 
 draw_bullet :: proc(b: Bullet) {
 	if !b.active {return}
