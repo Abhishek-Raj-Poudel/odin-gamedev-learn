@@ -7,14 +7,14 @@ import rl "vendor:raylib"
 import "../core"
 import "../graphics"
 
-
 PLAYER_SPEED :: 400
 PLAYER_TEXTURE :: "assets/texture/player.png"
 Player :: struct {
-	position:   [2]f32,
-	texture:    rl.Texture2D,
-	fire_rate:  f32,
-	fire_timer: f32,
+	position:      [2]f32,
+	texture:       rl.Texture2D,
+	bullet_speed:  f32,
+	fire_rate:     f32,
+	fire_interval: f32,
 }
 
 
@@ -23,6 +23,7 @@ create_player :: proc() -> Player {
 		texture = graphics.load_texture(PLAYER_TEXTURE),
 		position = [2]f32{f32(rl.GetScreenWidth()) / 2, f32(rl.GetScreenHeight() / 2)},
 		fire_rate = .25,
+		bullet_speed = 600,
 	}
 }
 
@@ -30,11 +31,11 @@ create_player :: proc() -> Player {
 // Player should be able to move and shoot
 update_player :: proc(p: ^Player, input: core.Input_State, bullets: ^[dynamic]Bullet) {
 
-	p.fire_timer -= rl.GetFrameTime()
+	p.fire_interval -= rl.GetFrameTime()
 
-	if input.shoot && p.fire_timer <= 0 {
-		append(bullets, make_bullet(p.position, {0, -BULLET_SPEED}))
-		p.fire_timer = p.fire_rate
+	if input.shoot && p.fire_interval <= 0 {
+		append(bullets, make_bullet(p.position, {0, -p.bullet_speed}, true))
+		p.fire_interval = p.fire_rate
 	}
 
 	direction := [2]f32{input.x, input.y}
