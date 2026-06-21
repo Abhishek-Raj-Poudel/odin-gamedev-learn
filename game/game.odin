@@ -6,8 +6,16 @@ import "../core"
 
 import "core:fmt"
 
+
+Screen :: enum {
+	MENU,
+	PLAYING,
+	GAME_OVER,
+}
+
 // Main goal is that the game run's here
 GameState :: struct {
+	screen:  Screen,
 	player:  Player,
 	bullets: [dynamic]Bullet,
 	enemies: [dynamic]Enemy,
@@ -15,10 +23,20 @@ GameState :: struct {
 	score:   int,
 }
 
+
 init_game :: proc() -> GameState {
-	return GameState{player = create_player(), spawner = create_spawner(), score = 0}
+	return GameState {
+		screen = .PLAYING,
+		player = create_player(),
+		spawner = create_spawner(),
+		score = 0,
+	}
 }
 update_game :: proc(s: ^GameState) {
+
+	if s.screen != .PLAYING {return}
+	//score UI
+	rl.DrawText(rl.TextFormat("Score: %d", s.score), 10, 10, 20, rl.WHITE)
 
 	inputs := core.Get_Input()
 
@@ -50,7 +68,7 @@ update_game :: proc(s: ^GameState) {
 			if b.is_player {
 				for &e in s.enemies {
 					if !e.active {continue}
-					if rl.CheckCollisionCircles(b.pos, 8, e.pos, 16) {
+					if rl.CheckCollisionCircles(b.pos, 8, e.pos, 32) {
 						b.active = false
 						e.active = false
 						s.score += 1
@@ -59,13 +77,23 @@ update_game :: proc(s: ^GameState) {
 					}
 				}
 			} else {
-				if rl.CheckCollisionCircles(b.pos, 8, s.player.position, 16) {
+				if rl.CheckCollisionCircles(b.pos, 8, s.player.position, 32) {
 					b.active = false
 					s.player.active = false
 					break
 				}
 			}
 		}
+	}
+	//debug
+	for &e in s.enemies {
+		if !e.active {return}
+		rl.DrawCircleLines(i32(e.pos.x + 32), i32(e.pos.y + 32), 32, rl.GREEN)
+	}
+
+
+	if inputs.restart {
+		s^ = init_game()
 	}
 
 }

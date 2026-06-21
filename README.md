@@ -1,6 +1,5 @@
-# odin-gamedev-learn
+# Top-down shooter. Odin + raylib.
 
-Top-down shooter. Odin + raylib.
 
 ## Features
 
@@ -19,7 +18,6 @@ Top-down shooter. Odin + raylib.
 - [ ] Asset management (load all at startup)
 - [ ] Enemy textures
 - [ ] Sound effects
-- [ ] Screen shake / background
 
 ## Controls
 
@@ -102,11 +100,9 @@ free_all(temp_allocator)
 2. **Enemy active guard first** — `update_enemy` shoots before checking `active`. Move `if !e.active {return}` to top.
 3. **Player active guard** — `update_player` and `draw_player` need `if !p.active {return}`.
 4. **Init fire_interval** — set `fire_interval = fire_rate` in `create_enemy` and `create_player` to prevent instant first shot.
-5. **Remove dead code** — commented imports, debug println, unused `move` field in Input_State.
 
 ### Architecture notes
 
 - Keep `package game` flat (no sub-packages). Small enough.
 - Constants in the file they belong to. OK as-is.
 - Texture cache in `graphics/` is fine. Will need unload at game exit.
-- Score field not yet in GameState. Add `score: int`.

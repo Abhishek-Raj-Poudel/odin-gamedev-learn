@@ -10,7 +10,7 @@
 - [x] Enemy spawner (interval-based, random x)
 - [x] Collision detection (player bullets vs enemy, enemy bullets vs player)
 - [x] Player active flag (hit → player frozen)
-- No score, no game states, no restart, no UI text, no enemy textures
+- no game states, no restart, no UI text, no enemy textures
 
 ---
 

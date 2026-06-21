@@ -3,10 +3,11 @@ package core
 import rl "vendor:raylib"
 
 Input_State :: struct {
-	move:  [2]f32,
-	x:     f32,
-	y:     f32,
-	shoot: bool,
+	move:    [2]f32,
+	x:       f32,
+	y:       f32,
+	shoot:   bool,
+	restart: bool,
 }
 
 Get_Input :: proc() -> Input_State {
@@ -32,7 +33,9 @@ Get_Input :: proc() -> Input_State {
 	if rl.IsKeyDown(.SPACE) {
 		state.shoot = true
 	}
-
+	if rl.IsKeyPressed(.R) {
+		state.restart = true
+	}
 	return state
 
 }

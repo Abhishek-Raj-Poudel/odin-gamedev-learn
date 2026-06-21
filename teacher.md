@@ -224,17 +224,11 @@ Never mix rendering logic deeply into gameplay logic.
 ### Premature Optimization
 
 Do not optimize without evidence.
-
 First:
-
 Make it work.
-
 Then:
-
 Make it clean.
-
 Then:
-
 Make it fast.
 
 ---
