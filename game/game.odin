@@ -4,7 +4,7 @@ import rl "vendor:raylib"
 
 import "../core"
 
-// import "core:fmt"
+import "core:fmt"
 
 // Main goal is that the game run's here
 GameState :: struct {
@@ -12,10 +12,11 @@ GameState :: struct {
 	bullets: [dynamic]Bullet,
 	enemies: [dynamic]Enemy,
 	spawner: Spawner,
+	score:   int,
 }
 
 init_game :: proc() -> GameState {
-	return GameState{player = create_player(), spawner = create_spawner()}
+	return GameState{player = create_player(), spawner = create_spawner(), score = 0}
 }
 update_game :: proc(s: ^GameState) {
 
@@ -25,6 +26,7 @@ update_game :: proc(s: ^GameState) {
 
 	update_spawner(&s.spawner, &s.enemies)
 
+	//bullet logic
 	for i := len(s.bullets) - 1; i >= 0; i -= 1 {
 		update_bullet(&s.bullets[i])
 		if !s.bullets[i].active {
@@ -32,7 +34,6 @@ update_game :: proc(s: ^GameState) {
 		}
 	}
 
-	// fmt.println("Total bullets:", len(s.bullets))
 
 	//same logic for enemies i guess
 	for i := len(s.enemies) - 1; i >= 0; i -= 1 {
@@ -42,6 +43,30 @@ update_game :: proc(s: ^GameState) {
 		}
 	}
 
+	//collision logic
+	// bullet and enemy
+	for &b in s.bullets {
+		if b.active {
+			if b.is_player {
+				for &e in s.enemies {
+					if !e.active {continue}
+					if rl.CheckCollisionCircles(b.pos, 8, e.pos, 16) {
+						b.active = false
+						e.active = false
+						s.score += 1
+						fmt.println("Total score:", s.score)
+						break
+					}
+				}
+			} else {
+				if rl.CheckCollisionCircles(b.pos, 8, s.player.position, 16) {
+					b.active = false
+					s.player.active = false
+					break
+				}
+			}
+		}
+	}
 
 }
 

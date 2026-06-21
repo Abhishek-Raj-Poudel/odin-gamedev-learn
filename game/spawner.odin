@@ -7,7 +7,7 @@ import "core:math/rand"
 ENEMY_SPEED :: 100
 ENEMY_BULLET_SPEED :: 400
 
-ENEMY_BULLET_SPAWN_RATE :: 1
+ENEMY_BULLET_SPAWN_RATE :: 2
 
 Spawner :: struct {
 	spawn_rate:     f32,
@@ -15,7 +15,7 @@ Spawner :: struct {
 }
 
 create_spawner :: proc() -> Spawner {
-	return Spawner{spawn_rate = 2}
+	return Spawner{spawn_rate = 4}
 }
 
 update_spawner :: proc(s: ^Spawner, enemies: ^[dynamic]Enemy) {

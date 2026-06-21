@@ -15,6 +15,7 @@ Player :: struct {
 	bullet_speed:  f32,
 	fire_rate:     f32,
 	fire_interval: f32,
+	active:        bool,
 }
 
 
@@ -24,6 +25,7 @@ create_player :: proc() -> Player {
 		position = [2]f32{f32(rl.GetScreenWidth()) / 2, f32(rl.GetScreenHeight() / 2)},
 		fire_rate = .25,
 		bullet_speed = 600,
+		active = true,
 	}
 }
 
@@ -58,6 +60,7 @@ update_player :: proc(p: ^Player, input: core.Input_State, bullets: ^[dynamic]Bu
 }
 
 draw_player :: proc(p: Player) {
+	if !p.active {return}
 	rl.DrawTextureV(p.texture, p.position, rl.WHITE)
 
 }

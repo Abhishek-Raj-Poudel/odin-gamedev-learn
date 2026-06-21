@@ -2,157 +2,111 @@
 
 ## Current State
 
-- [x] Player moves arrow keys, clamped to screen
-- [x] Player shoots SPACE, fire rate 0.25s
+- [x] Player movement (arrow keys, clamped)
+- [x] Player shoots (SPACE, fire rate 0.25s)
+- [x] Enemy shoots toward player (direction math, fire timer)
 - [x] Bullet off-screen removal
-- [x] Enemy struct with `active`, `vel`, `fire_rate`
 - [x] Enemy pool: `[dynamic]Enemy` in GameState
-- [x] Enemy update/draw loops in game.odin
-- [x] Enemy off-screen removal
-- [x] Texture cache
-- No enemy shooting, no collision, no game states, no spawner
+- [x] Enemy spawner (interval-based, random x)
+- [x] Collision detection (player bullets vs enemy, enemy bullets vs player)
+- [x] Player active flag (hit → player frozen)
+- No score, no game states, no restart, no UI text, no enemy textures
 
 ---
 
-## ~~Phase 0 — Bullet System~~ [DONE]
+## Phase 1 — Game State + Score Display
 
-- `Bullet` struct with `pos`, `vel`, `active`
-- `make_bullet(pos, vel)` factory
-- Off-screen removal with `off_screen` check
-- `unordered_remove` in reverse loop
+**Files:** `game/game.odin`, `game/state.odin` (new), `main.odin`
 
----
-
-## ~~Phase 0.5 — Enemy Pool~~ [DONE]
-
-- Enemy struct: `pos`, `vel`, `active`, `fire_rate`, `texture`
-- `create_enemy(pos, vel, fire_rate)` factory
-- `[dynamic]Enemy` in GameState
-- Update/draw loops with reverse-iterate + unordered_remove
-
----
-
-## Phase 1 — Enemy Shoots at Player
-
-**Files:** `game/enemy.odin`, `game/game.odin`
-
-Goal: Enemy fires bullets toward player.
-
-- Pass `player_pos` + enemy bullet pool to `update_enemy`
-- Add `fire_timer` to Enemy, decrement each frame
-- On timer <= 0: calculate direction `normalize(player_pos - e.pos)` , spawn bullet, reset timer
-- Add `enemy_bullets: [dynamic]Bullet` to GameState
-- Update + draw enemy bullets in game.odin
-
-Check: enemy fires bullets that track toward player position.
-
----
-
-## Phase 2 — Collision Detection
-
-**Files:** `game/collision.odin` (new)
-
-Goal: Detect bullet-entity hits.
-
-```odin
-circle_vs_circle :: proc(pos1, pos2: [2]f32, r1, r2: f32) -> bool
-```
-
-- Player bullets vs enemy
-- Enemy bullets vs player
-
----
-
-## Phase 3 — Player Bullet Kills Enemy + Score
-
-**Files:** `game/game.odin`
-
-Goal: Shooting enemy destroys it, score increases.
-
-- On collision: `enemy.active = false`, `bullet.active = false`, `score += 1`
-- Add `score: int` to GameState
-
----
-
-## Phase 4 — Enemy Bullet Kills Player + Restart
-
-**Files:** `game/game.odin`, `game/player.odin`
-
-Goal: Getting hit = death. R to restart.
-
-- Add `alive: bool` to Player
-- On collision: `player.alive = false`
-- R key resets GameState
-
----
-
-## Phase 5 — Game State Machine
-
-**Files:** `game/state.odin` (new), `game/game.odin`, `main.odin`
-
-Goal: Menu → Playing → Game Over.
+Goal: Menu → Playing → Game Over → Restart.
 
 ```odin
 Screen :: enum { MENU, PLAYING, GAME_OVER }
 ```
 
-- MENU: title, ENTER to start
-- PLAYING: game runs
-- GAME_OVER: final score, R to restart
+- Add `screen: Screen` and `score: int` to GameState
+- `update_game` switches on screen. Only update when PLAYING
+- `draw_game` switches on screen. Show title, score, game over text
+- ENTER to start, R to restart (re-init GameState)
+- `rl.DrawText(rl.TextFormat("Score: %d", s.score), 10, 10, 20, rl.WHITE)`
+
+Files: `game/state.odin`, `game/game.odin`, `main.odin`
 
 ---
 
-## Phase 6 — Enemy Spawner
+## Phase 2 — Restart + Player Death
 
-**Files:** `game/wave.odin` (new), `game/game.odin`
-
-Goal: Continuous enemy spawning.
-
-```odin
-Spawner :: struct {
-    timer:          f32,
-    spawn_interval: f32,
-}
-```
-
-- `init_spawner(interval) -> Spawner`
-- `update_spawner(s: ^Spawner, enemies: ^[dynamic]Enemy)` — timer ticks, spawns enemy at random x above screen
-- Add `spawner: Spawner` to GameState
+- On enemy bullet hit → `screen = .GAME_OVER`
+- R key in GAME_OVER → `s^ = init_game()`
+- Player doesn't draw/update when dead
 
 ---
 
-## Phase 7 — Polish
+## Phase 3 — Asset Management
 
-- Score display on screen
-- Sound effects (raylib audio)
-- Player death animation
+**Files:** `graphics/texture.odin`, `game/game.odin`
+
+Goal: Load all textures at startup, unload at exit.
+
+- Remove lazy-load from `load_texture`
+- `load_all_assets :: proc() -> AssetStore` — load every PNG once
+- `AssetStore` struct with named fields: `player, bullet, enemy, ...`
+- Store in GameState: `assets: AssetStore`
+- Pass to create functions or access via `s.assets.player`
+
+Benefit: no `load_texture` per-frame in draw, no duplicate texture field on every entity.
+
+---
+
+## Phase 4 — Enemy Textures + Variants
+
+- Add enemy texture (replace player.png placeholder)
+- `EnemyType :: enum { BASIC, FAST, TANK }`
+- `create_enemy(type: EnemyType)` — switch on type for speed/hp/fire_rate/texture
+
+---
+
+## Phase 5 — Sound
+
+- Load audio in `AssetStore`
+- Play on shoot, enemy death, player hit
+
+---
+
+## Phase 6 — Polish
+
+- Player death animation (flash, particles)
 - Screen shake
 - Background / parallax
-- Enemy variants (fast, tank, zigzag)
+- Difficulty scaling (spawn rate increases over time)
 
 ---
 
-## File Reference (planned)
+## File Reference (current + planned)
 
 ```
 .
-├── main.odin                 -- entry, game loop
+├── main.odin                 -- entry + game loop
 ├── core/
-│   ├── input.odin            -- Input_State + Get_Input()
-│   └── math.odin             -- direction_to, distance helpers (new)
+│   └── input.odin            -- Input_State + Get_Input()
 ├── game/
-│   ├── game.odin             -- GameState, init/update/draw orchestration
+│   ├── game.odin             -- GameState, init/update/draw, collision
+│   ├── state.odin            -- Screen enum (new)
 │   ├── player.odin           -- Player struct + create/update/draw
 │   ├── enemy.odin            -- Enemy struct + create/update/draw
-│   ├── bullet.odin           -- Bullet struct + make/update/draw + off-screen
-│   ├── collision.odin        -- collision checks (new)
-│   ├── wave.odin             -- spawner (new)
-│   └── state.odin            -- Screen enum (new)
+│   ├── bullet.odin           -- Bullet struct + make/update/draw
+│   ├── spawner.odin          -- Spawner, timer-based enemy creation
+│   └── common.odin           -- off_screen, shared helpers
 ├── graphics/
-│   └── texture.odin          -- texture cache
+│   ├── texture.odin          -- texture cache / AssetStore
+│   ├── assets.odin           -- load_all_assets, AssetStore (new)
+│   └── screen.odin           -- shake, fade effects (new)
+├── audio/
+│   ├── load.odin             -- load sounds (new)
+│   └── play.odin             -- play sounds (new)
 └── assets/
     └── texture/
         ├── player.png
         ├── bullet.png
-        └── enemy.png
+        └── (enemy.png, enemy_fast.png, ...)
 ```
