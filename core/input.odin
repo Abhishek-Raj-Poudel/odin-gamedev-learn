@@ -7,6 +7,7 @@ Input_State :: struct {
 	x:       f32,
 	y:       f32,
 	shoot:   bool,
+	start:   bool,
 	restart: bool,
 }
 
@@ -32,6 +33,9 @@ Get_Input :: proc() -> Input_State {
 
 	if rl.IsKeyDown(.SPACE) {
 		state.shoot = true
+	}
+	if rl.IsKeyPressed(.ENTER) {
+		state.start = true
 	}
 	if rl.IsKeyPressed(.R) {
 		state.restart = true
