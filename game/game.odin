@@ -4,8 +4,6 @@ import rl "vendor:raylib"
 
 import "../core"
 
-import "core:fmt"
-
 
 Screen :: enum {
 	MENU,
@@ -15,12 +13,13 @@ Screen :: enum {
 
 // Main goal is that the game run's here
 GameState :: struct {
-	screen:  Screen,
-	player:  Player,
-	bullets: [dynamic]Bullet,
-	enemies: [dynamic]Enemy,
-	spawner: Spawner,
-	score:   int,
+	screen:        Screen,
+	player:        Player,
+	bullets:       [dynamic]Bullet,
+	enemy_bullets: [dynamic]Bullet,
+	enemies:       [dynamic]Enemy,
+	spawner:       Spawner,
+	score:         int,
 }
 
 
@@ -35,62 +34,23 @@ init_game :: proc() -> GameState {
 update_game :: proc(s: ^GameState) {
 
 	if s.screen != .PLAYING {return}
-	//score UI
-	rl.DrawText(rl.TextFormat("Score: %d", s.score), 10, 10, 20, rl.WHITE)
 
 	inputs := core.Get_Input()
 
 	update_player(&s.player, inputs, &s.bullets)
-
 	update_spawner(&s.spawner, &s.enemies)
+	update_bullet(&s.bullets)
+	update_bullet(&s.enemy_bullets)
 
-	//bullet logic
-	for i := len(s.bullets) - 1; i >= 0; i -= 1 {
-		update_bullet(&s.bullets[i])
-		if !s.bullets[i].active {
-			unordered_remove(&s.bullets, i)
-		}
-	}
-
+	bullet_collision(s)
 
 	//same logic for enemies i guess
 	for i := len(s.enemies) - 1; i >= 0; i -= 1 {
-		update_enemy(&s.enemies[i], &s.bullets, s.player.position)
+		update_enemy(&s.enemies[i], &s.enemy_bullets, s.player.position)
 		if !s.enemies[i].active {
 			unordered_remove(&s.enemies, i)
 		}
 	}
-
-	//collision logic
-	// bullet and enemy
-	for &b in s.bullets {
-		if b.active {
-			if b.is_player {
-				for &e in s.enemies {
-					if !e.active {continue}
-					if rl.CheckCollisionCircles(b.pos, 8, e.pos, 32) {
-						b.active = false
-						e.active = false
-						s.score += 1
-						fmt.println("Total score:", s.score)
-						break
-					}
-				}
-			} else {
-				if rl.CheckCollisionCircles(b.pos, 8, s.player.position, 32) {
-					b.active = false
-					s.player.active = false
-					break
-				}
-			}
-		}
-	}
-	//debug
-	for &e in s.enemies {
-		if !e.active {return}
-		rl.DrawCircleLines(i32(e.pos.x + 32), i32(e.pos.y + 32), 32, rl.GREEN)
-	}
-
 
 	if inputs.restart {
 		s^ = init_game()
@@ -104,9 +64,8 @@ draw_game :: proc(s: ^GameState) {
 
 	draw_player(s.player)
 
-	for bullet in s.bullets {
-		draw_bullet(bullet)
-	}
+	draw_bullet(&s.bullets)
+	draw_bullet(&s.enemy_bullets)
 
 	for enemy in s.enemies {
 		draw_enemy(enemy)

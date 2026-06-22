@@ -31,18 +31,17 @@ create_enemy :: proc(pos, vel: [2]f32, fire_rate, bullet_speed: f32) -> Enemy {
 }
 
 update_enemy :: proc(e: ^Enemy, bullets: ^[dynamic]Bullet, player_pos: [2]f32) {
-
+	if !e.active {return}
 	// shoot at user
 	e.fire_interval -= rl.GetFrameTime()
 
 	if e.fire_interval <= 0 {
 		dir := la.normalize0(player_pos - e.pos)
-		append(bullets, make_bullet(e.pos, dir * e.bullet_speed, false))
+		append(bullets, make_bullet(e.pos, dir * e.bullet_speed))
 		e.fire_interval = e.fire_rate
 	}
 
 
-	if !e.active {return}
 	e.pos += e.vel * rl.GetFrameTime()
 
 

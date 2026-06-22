@@ -36,7 +36,7 @@ update_player :: proc(p: ^Player, input: core.Input_State, bullets: ^[dynamic]Bu
 	p.fire_interval -= rl.GetFrameTime()
 
 	if input.shoot && p.fire_interval <= 0 && p.active {
-		append(bullets, make_bullet(p.position, {0, -p.bullet_speed}, true))
+		append(bullets, make_bullet(p.position, {0, -p.bullet_speed}))
 		p.fire_interval = p.fire_rate
 	}
 
