@@ -7,7 +7,7 @@ import rl "vendor:raylib"
 //ENEMY_SPEED :: 300
 
 //TODO: Replace this texture later
-ENEMY_TEXTURE :: "assets/texture/player.png"
+ENEMY_TEXTURE :: "assets/texture/enemy.png"
 
 Enemy :: struct {
 	pos:           [2]f32,

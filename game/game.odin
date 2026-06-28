@@ -72,7 +72,8 @@ update_game :: proc(s: ^GameState) {
 
 draw_game :: proc(s: ^GameState) {
 	rl.BeginDrawing()
-	rl.ClearBackground({160, 200, 255, 255})
+	// rl.ClearBackground({160, 200, 255, 255})
+	rl.ClearBackground({0, 0, 0, 0})
 
 	switch s.screen {
 	case .MENU:
